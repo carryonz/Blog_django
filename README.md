@@ -1,0 +1,2 @@
+# Blog_django
+django
