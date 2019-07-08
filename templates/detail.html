@@ -1,0 +1,184 @@
+<!-- extends表明此页面继承自 base.html 文件 -->
+{% extends "common/base.html" %}
+{% load staticfiles %}
+
+<!-- 写入 base.html 中定义的 title -->
+{% block title %}
+    文章详情
+{% endblock title %}
+
+<!-- 写入 base.html 中定义的 content -->
+{% block content %}
+    <script src="{% static 'ckeditor/ckeditor/plugins/prism/lib/prism/prism_patched.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'prism/prism.css' %}">
+    <!-- 文章详情 -->
+    <div class="container">
+        <div class="row">
+            <!-- 标题及作者 -->
+            <div class="col-9">
+                <h1 class="col-12 mt-4 mb-4">{{ article.title }}</h1>
+                <div class="col-12 alert alert-success">作者：{{ article.author }}
+                    {% if request.user == article.author %}
+                        ·<a href="#" onclick="confirm_delete()">删除文章</a>
+                        · <a href="{% url "article_update" article.id %}">编辑文章</a>
+                    {% endif %}
+
+                    {% if article.column %}
+                    <a  class="btn btn-sm mb-2 btn-warning" href="{% url 'list' %}?column={{ article.column.id }}">
+                            {{ article.column }}
+                    </a>
+                    {% endif %}
+                         <!-- 标签 -->
+                        <span>
+                            {% for tag in article.tags.all %}
+                                <a href="{% url 'list' %}?tag={{ tag }}"
+                                   class="badge badge-secondary"
+                                >
+                                    {{ tag }}
+                                </a>
+                            {% endfor %}
+                        </span>
+                    <div>
+                        浏览：{{ article.total_views }}
+                    </div>
+
+                </div>
+                <hr>
+
+
+                <!-- 文章正文 -->
+                <div class="col-12">
+                    <p>{{ article.body|safe }}</p>
+                </div>
+                <!-- 相邻文章导航 -->
+                <div class="row justify-content-end">
+                    {% if next_article %}
+                    <div class="col-auto mr-auto">
+                        <a  href="{{ next_article.get_absolute_url }}"
+                            class="btn btn-info"
+                            >
+                            {{ next_article.title }}
+                        </a>
+                    </div>
+                    {% endif %}
+                {% if pre_article %}
+                    <div class="col-auto">
+                        <a  href="{{ pre_article.get_absolute_url }}"
+                        class="btn btn-info"
+                        >
+                            {{ pre_article.title }}
+                        </a>
+                    </div>
+                {% endif %}
+                </div>
+                {% if request.user.is_authenticated %}
+                    <div>
+                        <form
+                                action="{% url 'comment:post_comment' article.id %}"
+                                method="POST"
+                        >
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="body">
+                                    <strong>
+                                        发表评论：
+                                    </strong>
+                                </label>
+{#                                <textarea#}
+{#                                        type="text"#}
+{#                                        class="form-control"#}
+{#                                        id="body"#}
+{#                                        name="body"#}
+{#                                        rows="2"></textarea>#}
+                                <div>
+                                    {{ comment_form.media }}
+                                    {{ comment_form.body }}
+                                </div>
+                            </div>
+                            <!-- 提交按钮 -->
+                            <button type="submit" class="btn btn-primary ">发送</button>
+                        </form>
+                    </div>
+                    <br>
+                {% else %}
+                    <br>
+                    <h5 class="row justify-content-center">
+                        请<a href="{% url 'login' %}">登录</a>后回复
+                    </h5>
+                    <br>
+                {% endif %}
+                <!-- 显示评论 -->
+                <h4>共有{{ comments.count }}条评论</h4>
+                <div>
+                    {% for comment in comments %}
+                        <hr>
+                        <p>
+                            <strong style="color: pink">
+                                {{ comment.user }}
+                            </strong> 于
+                            <span style="color: green">
+                    {{ comment.created|date:"Y-m-d H:i:s" }}
+                </span> 时说：
+                        </p>
+                        <pre style="font-family: inherit; font-size: 1em;">
+                            {{ comment.body|safe }}
+                        </pre>
+                    {% endfor %}
+                </div>
+            </div>
+            <!-- 新增的目录 -->
+            <div class="col-3 mt-4 sidebar" id="sidebar" >
+                 <div class="sidebar__inner">
+                     <h4><strong>目录</strong></h4>
+                     <hr>
+                     <div>
+                         {{ toc|safe }}
+                     </div>
+                 </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 删除文章的函数
+        function confirm_delete() {
+            // 调用layer弹窗组件
+            layer.open({
+                // 弹窗标题
+                title: "确认删除",
+                // 正文
+                content: "确认删除这篇文章吗？",
+                // 点击确定按钮后调用的回调函数
+                yes: function (index, layero) {
+                    // 指定应当前往的 url
+                    location.href = '{% url "article_delete" article.id %}'
+                },
+            })
+        }
+    </script>
+    <style>
+    .sidebar{
+        will-change: min-height;
+    }
+
+    .sidebar__inner{
+        transform: translate(0, 0);
+        transform: translate3d(0, 0, 0);
+        will-change: position, transform;
+    }
+</style>
+{% endblock content %}
+{% block script %}
+    <!-- 引入粘性侧边栏 -->
+<script src="{% static 'sticky_sidebar/jquery.sticky-sidebar.min.js' %}"></script>
+<script type="text/javascript">
+    $('#sidebar').stickySidebar({
+        topSpacing: 20,
+        bottomSpacing: 20,
+    });
+</script>
+<script>
+    $(".django-ckeditor-widget").removeAttr('style');
+</script>
+{% endblock script %}
